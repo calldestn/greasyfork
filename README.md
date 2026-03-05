@@ -15,6 +15,7 @@ These scripts address long-standing UX gaps, specifically focusing on **SMS char
 ### Features
 - **Visual Alerts**: Sliding CSS banners when exceeding 160 characters.
 - **Smart Blocking**: (Optional) Prevents the `Enter` key or Send button from triggering when over the limit to avoid message fragmentation.
+- **Character Counting Status Bar**: Status bar under your message that changes with the current character count
 - **Client-Side Only**: Zero modification to server-side code or proprietary binaries.
 
 ## 🛠️ Installation
@@ -23,7 +24,15 @@ These scripts address long-standing UX gaps, specifically focusing on **SMS char
 3. Your browser will prompt you to install the script.
 
 ## ⚖️ Legal & License (AGPL-3.0)
-This project is released under the **GNU Affero General Public License v3.0**. 
+This project is released under the **GNU Affero General Public License v3.0**.
+
+This script is a **client-side User Agent modification**. In accordance with established U.S. legal principles (such as those protecting ad-blockers and custom stylesheets) regarding a user's right to control local browser rendering, this tool allows users to adjust the display of data for **accessibility, readability, and personal utility**.
+
+*   **No Server-Side Interaction:** This script operates exclusively on data already downloaded to the user's local machine. It does not modify server-side data, bypass authentication/paywalls, or circumvent technical protection measures (DRM) in violation of **DMCA Section 1201**.
+*   **Assistive Technology:** This is a functional tool for personal accessibility. It is designed to assist users in overcoming barriers to information by bringing web content into alignment with their specific **ADA/WCAG** needs.
+*   **Interoperability & Fair Use:** Modification of local rendering is a transformative, non-commercial use protected under U.S. Copyright Law. It ensures interoperability between the web content and the user's preferred viewing environment.
+*   **Non-Automated:** This script does not perform "scraping," automated "bot" interactions, or any action that places an undue load on the host’s infrastructure.
+
 
 ### Prior Art & Intellectual Property
 The specific architectural blueprints, logic, and DOM-manipulation strategies contained herein constitute **Prior Art**. 
