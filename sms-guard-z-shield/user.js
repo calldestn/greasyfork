@@ -1,7 +1,7 @@
 // ==UserScript==
-// @name         SMS Guard: Z-Shield (Compatible with 3CX PWA)
+// @name         SMS Guard: Z-Shield (Accessibility Professional)
 // @namespace    https://github.com/calldestn
-// @version      1.1.0
+// @version      1.5.5
 // @description  Accessibility & Safety Overlay: Provides high-visibility alerts and font magnification for users with visual impairments to prevent SMS errors.
 // @author       callme
 // @match        https://*.3cx.cloud/*
@@ -13,109 +13,151 @@
     'use strict';
     const SMS_MAX = 160;
 
-    // Load saved scale or default to 1 (100%)
-    let currentScale = parseFloat(localStorage.getItem('cx-accessibility-scale')) || 1.0;
+    let inputScale = parseFloat(localStorage.getItem('cx-input-scale')) || 1.0;
+    let chatScale = parseFloat(localStorage.getItem('cx-chat-scale')) || 1.0;
 
     const injectStyles = () => {
-        // Remove existing if updating
         const oldStyle = document.getElementById('cx-zshield-styles');
         if (oldStyle) oldStyle.remove();
 
         const style = document.createElement('style');
         style.id = 'cx-zshield-styles';
         style.innerHTML = `
-            /* The Shield Alert */
             #cx-safety-shield {
-                position: absolute !important;
-                right: 0 !important; top: 0 !important;
-                height: 100% !important; width: 0%;
-                background-color: #d32f2f !important; color: white !important;
-                z-index: 10000 !important; display: flex !important;
+                position: absolute !important; right: 0 !important; top: 0 !important;
+                height: 100% !important; width: 0%; background-color: #d32f2f !important;
+                color: white !important; z-index: 10000 !important; display: flex !important;
                 justify-content: center !important; align-items: center !important;
-                overflow: hidden !important; white-space: nowrap !important;
-                font-family: sans-serif !important; font-weight: bold !important;
-                font-size: 11px !important; transition: width 0.3s ease !important;
-                pointer-events: all !important; cursor: not-allowed !important;
-                border-radius: 8px 0 0 8px !important;
+                overflow: hidden !important; transition: width 0.3s ease !important;
+                pointer-events: all !important; cursor: not-allowed !important; border-radius: 8px 0 0 8px !important;
             }
             #cx-safety-shield.active { width: 140px !important; box-shadow: -5px 0 15px rgba(0,0,0,0.2) !important; }
 
-            /* Accessibility Magnifier Toggle */
-            #cx-magnify-ctrl {
-                position: absolute; right: 155px; top: -35px;
-                background: #222; color: #fff; border: 2px solid #fff;
-                border-radius: 4px; padding: 2px 10px; cursor: pointer;
-                font-weight: bold; z-index: 10001; font-size: 12px;
-                box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+            #cx-safety-shield .cx-shield-label {
+                white-space: nowrap !important;
+                opacity: 0 !important;
+                transition: opacity 0.2s ease !important;
+                transition-delay: 0s !important;
+                pointer-events: none !important;
             }
-            #cx-magnify-ctrl:hover { background: #444; }
-
-            /* Targeted UI Magnification */
-            .cx-accessible-ui {
-                font-size: ${14 * currentScale}px !important;
-                line-height: 1.4 !important;
-                transform-origin: bottom left;
+            #cx-safety-shield.active .cx-shield-label {
+                opacity: 1 !important;
+                transition-delay: 0.25s !important;
+                font-size: 1.2rem;
+                font-weight: bold;
             }
 
-            #chat-form-controls { overflow: visible !important; }
+            .cx-mag-btn { display: inline-flex !important; align-items: center !important; justify-content: center !important; padding: 0 10px !important; min-width: 44px !important; cursor: pointer; color: inherit; }
+            .cx-mag-btn svg { width: 18px; height: 18px; fill: currentColor; }
+            .cx-mag-btn .zoom-text { font-size: 9px; margin-left: 2px; font-weight: bold; }
+
+            /* Zone 1: Input Box - Block internal, but part of a Flex row */
+            div[data-qa="input_restriction"] {
+                display: block !important;
+                font-size: ${16 * inputScale}px !important;
+                line-height: 1.5 !important;
+                min-height: ${36 * inputScale}px !important;
+                height: auto !important;
+                padding: 2px 2px !important;
+                text-align: left !important;
+                position: relative !important;
+                width: 100% !important;
+                background: transparent !important;
+            }
+
+            div[data-qa="input_restriction"]::before {
+                font-size: ${16 * inputScale}px !important;
+                line-height: 1.5 !important;
+                white-space: nowrap !important;
+                position: absolute !important;
+                left: 12px !important; top: 10px !important;
+                pointer-events: none !important;
+                opacity: 0.5;
+            }
+
+            /* This ensures the input area stretches while the icons stay fixed */
+            .message-input-wrap {
+                flex: 1 !important;
+                display: block !important;
+                min-width: 50px !important;
+            }
+
+            #sendMessageBtn {
+                width: ${44 * inputScale}px !important;
+                height: ${44 * inputScale}px !important;
+                flex-shrink: 0 !important;
+            }
+
+            /* Zone 2: Chat History */
+            .message-text-internal, .message-text-internal span, .message-time-info {
+                font-size: ${14 * chatScale}px !important;
+                line-height: 1.5 !important;
+            }
+            .message-inner { max-width: ${85 * chatScale}% !important; }
+
+            /* The Footer Bar - Restored Flex for Icon Alignment */
+            #chat-form-controls {
+                display: flex !important;
+                flex-direction: row !important;
+                align-items: center !important;
+                justify-content: flex-end !important;
+                height: auto !important;
+                min-height: 50px !important;
+                overflow: visible !important;
+                padding: 5px 10px !important;
+            }
         `;
         document.head.appendChild(style);
     };
 
-    const applyAccessibility = () => {
-        const input = document.querySelector('div[data-qa="input_restriction"]');
-        const sendBtn = document.querySelector('button[data-qa="send_message_button"]');
-        if (input) input.style.fontSize = `${14 * currentScale}px`;
-        if (sendBtn) sendBtn.style.transform = `scale(${currentScale})`;
-    };
+ const createMagButton = (id, type) => {
+    const btn = document.createElement('button');
+    btn.id = id; btn.type = 'button'; btn.className = 'btn btn-plain cx-mag-btn';
+    const currentVal = type === 'input' ? inputScale : chatScale;
+    const zone = type === 'input' ? 'Input Text' : 'Chat History';
 
-    const createControls = () => {
-        const controls = document.getElementById('chat-form-controls');
-        if (!controls || document.getElementById('cx-magnify-ctrl')) return;
+    const getLabel = (scale) => `Zoom ${zone}: ${(scale * 100).toFixed(0)}% (click to increase)`;
 
-        const btn = document.createElement('button');
-        btn.id = 'cx-magnify-ctrl';
-        btn.innerHTML = `🔍 ZOOM: ${(currentScale * 100).toFixed(0)}%`;
-        btn.title = "Accessibility Zoom (Targeted)";
-        btn.onclick = (e) => {
-            e.preventDefault();
-            currentScale = currentScale >= 2.0 ? 1.0 : currentScale + 0.25;
-            localStorage.setItem('cx-accessibility-scale', currentScale);
-            injectStyles();
-            applyAccessibility();
-            btn.innerHTML = `🔍 ZOOM: ${(currentScale * 100).toFixed(0)}%`;
-        };
-        controls.appendChild(btn);
+    btn.title = getLabel(currentVal);
+    btn.setAttribute('aria-label', getLabel(currentVal));
+    btn.innerHTML = `<svg aria-hidden="true" focusable="false" viewBox="0 0 512 512"><path d="M416 208c0 45.9-14.9 88.3-40 122.7L502.6 457.4c12.5 12.5 12.5 32.8 0 45.3s-32.8 12.5-45.3 0L330.7 376c-34.4 25.2-76.8 40-122.7 40C93.1 416 0 322.9 0 208S93.1 0 208 0S416 93.1 416 208zM208 352a144 144 0 1 0 0-288 144 144 0 1 0 0 288z"/></svg><span class="zoom-text" aria-live="polite">${(currentVal * 100).toFixed(0)}%</span>`;
+    btn.onclick = (e) => {
+        e.preventDefault();
+        if (type === 'input') { inputScale = inputScale >= 2.0 ? 1.0 : inputScale + 0.25; localStorage.setItem('cx-input-scale', inputScale); }
+        else { chatScale = chatScale >= 2.0 ? 1.0 : chatScale + 0.25; localStorage.setItem('cx-chat-scale', chatScale); }
+        injectStyles();
+        const newScale = type === 'input' ? inputScale : chatScale;
+        btn.querySelector('.zoom-text').innerText = `${(newScale * 100).toFixed(0)}%`;
+        btn.title = getLabel(newScale);
+        btn.setAttribute('aria-label', getLabel(newScale));
     };
+    return btn;
+};
 
     const runSafetyCheck = () => {
         const input = document.querySelector('div[data-qa="input_restriction"]');
-        const controls = document.getElementById('chat-form-controls');
-        if (!input || !controls) return;
+        const footer = document.getElementById('chat-form-controls');
+        const headerCallBtn = document.getElementById('chatInfoCallBtn');
+        const footerTempBtn = document.getElementById('templateSelector');
+        if (!input || !footer) return;
+
+        if (footerTempBtn && !document.getElementById('cx-mag-input')) { footerTempBtn.parentNode.insertBefore(createMagButton('cx-mag-input', 'input'), footerTempBtn); }
+        if (headerCallBtn && !document.getElementById('cx-mag-history')) { headerCallBtn.parentNode.insertBefore(createMagButton('cx-mag-history', 'history'), headerCallBtn); }
 
         let shield = document.getElementById('cx-safety-shield');
         if (!shield) {
             shield = document.createElement('div');
             shield.id = 'cx-safety-shield';
-            shield.innerHTML = '⚠️ LIMIT EXCEEDED';
-            controls.appendChild(shield);
+            shield.innerHTML = '<span class="cx-shield-label">⚠️ SMS LIMIT</span>';
+            footer.appendChild(shield);
         }
-
-        const isOver = (input.textContent || "").length > SMS_MAX;
-        shield.classList.toggle('active', isOver);
-        
-        createControls();
-        applyAccessibility();
+        shield.classList.toggle('active', (input.textContent || "").length > SMS_MAX);
     };
 
-    // Block Enter Key if over limit
     document.addEventListener('keydown', (e) => {
         if (e.key === 'Enter' && !e.shiftKey) {
             const input = document.querySelector('div[data-qa="input_restriction"]');
-            if (input && input.contains(e.target) && input.textContent.length > SMS_MAX) {
-                e.preventDefault();
-                e.stopImmediatePropagation();
-            }
+            if (input && input.contains(e.target) && input.textContent.length > SMS_MAX) { e.preventDefault(); e.stopImmediatePropagation(); }
         }
     }, true);
 
